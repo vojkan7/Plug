@@ -7,29 +7,35 @@ from torch.utils.data import TensorDataset, DataLoader
 
 def scores_by_transform(imgs,
                         targets,
-                        target_model,
+                        target_models,
                         transforms,
                         iterations=100):
 
     score = torch.zeros_like(
         targets, dtype=torch.float32).to(imgs.device)
+    nr_of_target_models=len(target_models)
 
+    
+    #print(nr_of_target_models)
     with torch.no_grad():
         for i in range(iterations):
             imgs_transformed = transforms(imgs)
-            prediction_vector = target_model(imgs_transformed).softmax(dim=1)
-            score += torch.gather(prediction_vector, 1,
-                                  targets.unsqueeze(1)).squeeze()
+            for target_model in target_models:
+                prediction_vector = target_model(imgs_transformed).softmax(dim=1)
+                score += torch.gather(prediction_vector, 1, targets.unsqueeze(1)).squeeze()
+                
+            score=score/nr_of_target_models
         score = score / iterations
     return score
 
 
-def perform_final_selection(w, generator, config, targets, target_model, samples_per_target,
+def perform_final_selection(w, generator, config, targets, target_models, samples_per_target,
                             approach, iterations, batch_size, device, rtpt=None):
     target_values = set(targets.cpu().tolist())
     final_targets = []
     final_w = []
-    target_model.eval()
+    for target_model in target_models:
+        target_model.eval()
 
     if approach.strip() == 'transforms':
         transforms = T.Compose([
@@ -55,7 +61,7 @@ def perform_final_selection(w, generator, config, targets, target_model, samples
 
             scores.append(scores_by_transform(imgs,
                                                   t,
-                                                  target_model,
+                                                  target_models,
                                                   transforms,
                                                   iterations))
         scores = torch.cat(scores, dim=0).cpu()

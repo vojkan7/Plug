@@ -1,5 +1,5 @@
 ---
-seed: 42
+seed: 13
 
 model:
   architecture: densenet121
@@ -49,5 +49,5 @@ wandb:
   enable_logging: true
   args:
     project: b_model_inversion_targets_facescrub
-    name: densenet121_FaceScrub
+    name: densenet121_FaceScrub_v3
     save_code: true

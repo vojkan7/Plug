@@ -6,7 +6,7 @@ from utils.stylegan import adjust_gen_images
 
 
 def find_initial_w(generator,
-                   target_model,
+                   target_models,
                    targets,
                    search_space_size,
                    clip=True,
@@ -42,7 +42,12 @@ def find_initial_w(generator,
         np.random.RandomState(seed).randn(search_space_size,
                                           generator.z_dim)).to(device)
     c = None
-    target_model.eval()
+
+
+   
+    for target_model in target_models:
+        target_model.eval()
+    
     five_crop = None
 
     with torch.no_grad():
@@ -78,12 +83,23 @@ def find_initial_w(generator,
                     cropped_images += list(five_crop(im))
                 imgs = cropped_images
 
+            nr_of_target_models=len(target_models)
             target_conf = None
+            tar_conf = None
             for im in imgs:
+                for target_model in target_models:
+                    if tar_conf is not None:
+                        tar_conf+=target_model(im).softmax(dim=1) / len(imgs)
+                    else:
+                        tar_conf=target_model(im).softmax(dim=1) / len(imgs)
+
+                mean=tar_conf/nr_of_target_models
                 if target_conf is not None:
-                    target_conf += target_model(im).softmax(dim=1) / len(imgs)
+                    target_conf+=mean
                 else:
-                    target_conf = target_model(im).softmax(dim=1) / len(imgs)
+                    target_conf=mean
+
+           
             confidences.append(target_conf)
 
         confidences = torch.cat(confidences, dim=0)

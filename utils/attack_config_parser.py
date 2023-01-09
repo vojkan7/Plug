@@ -1,4 +1,5 @@
 from copy import copy
+import string
 from typing import List
 
 import numpy as np
@@ -21,9 +22,23 @@ class AttackConfigParser:
             config = yaml.safe_load(file)
         self._config = config
 
+    def splitstrings(string):
+        li = list(string.split(","))
+        return li
+
     def create_target_model(self):
         if 'wandb_target_run' in self._config:
-            model = load_model(self._config['wandb_target_run'])
+
+          
+
+
+
+            models=[]
+            for i in self.wandb_target_run:
+                model=load_model(i)
+                models.append(model)
+            
+                      
         elif 'target_model' in self._config:
             config = self._config['target_model']
             model = Classifier(num_classes=config['num_classes'],
@@ -32,15 +47,21 @@ class AttackConfigParser:
         else:
             raise RuntimeError('No target model stated in the config file.')
 
-        model.eval()
-        self.model = model
-        return model
+        
 
-    def get_target_dataset(self):
+        for model in models:
+            model.eval()
+            self.model=model
+
+        
+        return models
+
+    def get_target_dataset(self,i):
         try:
             api = wandb.Api(timeout=60)
-            run = api.run(self._config['wandb_target_run'])
+            run = api.run(self.wandb_target_run[i])
             return run.config['Dataset'].strip().lower()
+           
         except:
             return self._config['dataset']
 
@@ -92,7 +113,7 @@ class AttackConfigParser:
             break
         return scheduler_instance
 
-    def create_candidates(self, generator, target_model, targets):
+    def create_candidates(self, generator, target_models, targets):
         candidate_config = self._config['candidates']
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if 'candidate_file' in candidate_config:
@@ -106,7 +127,7 @@ class AttackConfigParser:
         elif 'candidate_search' in candidate_config:
             search_config = candidate_config['candidate_search']
             w = find_initial_w(generator=generator,
-                               target_model=target_model,
+                               target_models=target_models,
                                targets=targets,
                                seed=self.seed,
                                **search_config)
@@ -123,6 +144,7 @@ class AttackConfigParser:
         targets = None
         target_classes = attack_config['targets']
         num_candidates = self._config['candidates']['num_candidates']
+        print(target_classes)
         if type(target_classes) is list:
             targets = torch.tensor(target_classes)
             targets = torch.repeat_interleave(targets, num_candidates)

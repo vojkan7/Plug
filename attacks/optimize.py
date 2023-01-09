@@ -1,28 +1,60 @@
+from copy import deepcopy
 from losses.poincare import poincare_loss
 import math
 
 import numpy as np
 import torch
 import torch.nn as nn
+import random
 
 class Optimization():
-    def __init__(self, target_model, synthesis, discriminator, transformations, num_ws, config):
+    def __init__(self, target_models, synthesis, discriminator, transformations, num_ws, config):
         self.synthesis = synthesis
-        self.target = target_model
+        self.target = target_models
         self.discriminator = discriminator
         self.config = config
         self.transformations = transformations
         self.discriminator_weight = self.config.attack['discriminator_loss_weight']
         self.num_ws = num_ws
         self.clip = config.attack['clip']
+        self.nr_of_target_models = config.attack['nr_of_target_models']
+        self.ror=True
+        
+    def get_selcted_target_models(self,nr_of_target_models):
 
-    def optimize(self, w_batch, targets_batch, num_epochs):
+        new_target_models=[]
+        targ=deepcopy(self.target)
+        nr_of_models=nr_of_target_models
+        
+        while(nr_of_models)>0:
+            mod=random.choice(targ)
+            new_target_models.append(mod)
+            nr_of_models=nr_of_models-1
+            targ.remove(mod)
+
+
+       
+        
+        return new_target_models
+
+
+    def optimize(self, w_batch, targets_batch, num_epochs,nr_target_models):
         # Initialize attack
         optimizer = self.config.create_optimizer(params=[w_batch.requires_grad_()])
         scheduler = self.config.create_lr_scheduler(optimizer)
+        ######################################################################jedes mal nimmt
+        #alte falsche target_models=new_target_models
+
+        nr_models=nr_target_models
+            
+       
+        
 
         # Start optimization
         for i in range(num_epochs):
+
+
+            target_models=Optimization.get_selcted_target_models(self,nr_models)
             # synthesize imagesnd preprocess images
             imgs = self.synthesize(w_batch, num_ws=self.num_ws)
 
@@ -38,17 +70,20 @@ class Optimization():
                 imgs = self.clip_images(imgs)
             if self.transformations:
                 imgs = self.transformations(imgs)
+                    
 
-            # Compute target loss
-            outputs = self.target(imgs)
-            target_loss = poincare_loss(
-                outputs, targets_batch).mean()
-
-            # combine losses and compute gradients
-            optimizer.zero_grad()
-            loss = target_loss + discriminator_loss * self.discriminator_weight
+            # Compute target loss & combine losses and compute gradients
+            loss_sum = torch.tensor(0.0)
+            loss_sum=loss_sum.cuda()
+            for target in target_models:
+                outputs = target(imgs)
+                target_loss = poincare_loss(
+                    outputs, targets_batch).mean()
+                loss_sum+=target_loss
+            loss=loss_sum/len(target_models)
             loss.backward()
             optimizer.step()
+
 
             if scheduler:
                 scheduler.step()

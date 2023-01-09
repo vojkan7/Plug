@@ -15,7 +15,7 @@ def main():
         description='Training a target classifier')
     parser.add_argument('-c',
                         '--config',
-                        default=None,
+                        default="configs/training/default_training.yaml",
                         type=str,
                         dest="config",
                         help='Config .json file path (default: None)')
@@ -39,7 +39,7 @@ def main():
 
     # Build the datasets
     train_set, valid_set, test_set = config.create_datasets()
-
+    
     criterion = torch.nn.CrossEntropyLoss()
     metric = Accuracy
 

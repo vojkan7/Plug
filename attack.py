@@ -5,6 +5,7 @@ from copy import deepcopy
 from collections import Counter
 import csv
 from pathlib import Path
+import math
 
 import numpy as np
 import torch
@@ -36,7 +37,6 @@ def main():
     torch.set_num_threads(24)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     gpu_devices = [i for i in range(torch.cuda.device_count())]
-
     # Define and parse attack arguments
     parser = create_parser()
     config, args = parse_arguments(parser)
@@ -64,14 +64,24 @@ def main():
     num_ws = G.num_ws
 
     # Load target model and set dataset
-    target_model = config.create_target_model()
-    target_model_name = target_model.name
-    target_dataset = config.get_target_dataset()
+    target_models= config.create_target_model()
+    target_model_names,target_datasets=[],[]
+    for index,target_model in enumerate(target_models):
+        target_model_name = target_model.name
+        target_model_names.append(target_model_name)
+        target_dataset = config.get_target_dataset(index)
+        target_datasets.append(target_dataset)
+
+        
 
     # Distribute models
-    target_model = torch.nn.DataParallel(
-            target_model, device_ids=gpu_devices)
-    target_model.name = target_model_name
+
+    for index,target_model in enumerate(target_models):
+        target_models[index]=torch.nn.DataParallel(target_models[index], device_ids=gpu_devices)
+        target_models[index].name=target_model_names[index]
+        
+
+
     synthesis = torch.nn.DataParallel(
             G.synthesis, device_ids=gpu_devices)
     synthesis.num_ws = num_ws
@@ -86,17 +96,17 @@ def main():
 
     # Create initial style vectors
     w, w_init, x, V = create_initial_vectors(
-        config, G, target_model, targets, device)
+        config, G, target_models, targets, device)
     del G
 
-    # Initialize wandb logging
+    # Initialize wandb logging       #################################################################Hier wird target_model_name= Classifier benutz. anpassen ?
     if config.logging:
         optimizer = config.create_optimizer(params=[w])
         wandb_run = init_wandb_logging(
             optimizer, target_model_name, config, args)
         run_id = wandb_run.id
 
-    # Print attack configuration
+    # Print attack configuration ##################################hier auch text
     print(
         f'Start attack against {target_model.name} optimizing w with shape {list(w.shape)} ',
         f'and targets {dict(Counter(targets.cpu().numpy()))}.'
@@ -114,7 +124,7 @@ def main():
             + int(math.ceil(w.shape[0] / (batch_size * 3))) \
             + 2 * int(math.ceil(config.final_selection['samples_per_target'] * len(set(targets.cpu().tolist())) / (batch_size * 3))) \
             + 2 * len(set(targets.cpu().tolist()))
-        rtpt = RTPT(name_initials='LS',
+        rtpt = RTPT(name_initials='VV',
                     experiment_name='Model_Inversion',
                     max_iterations=max_iterations)
         rtpt.start()
@@ -129,11 +139,24 @@ def main():
     # Create attack transformations
     attack_transformations = config.create_attack_transformations()
 
+
+
+   
+
+
+
     ####################################
     #         Attack Iteration         #
     ####################################
     optimization = Optimization(
-        target_model, synthesis, discriminator, attack_transformations, num_ws, config)
+        target_models, synthesis, discriminator, attack_transformations, num_ws, config)
+
+
+     #choice number of target models
+    nr_of_target_models = config.attack['nr_of_target_models']
+    #target_models=optimization.get_selcted_target_models(nr_of_target_models)
+
+
 
     # Collect results
     w_optimized = []
@@ -148,8 +171,10 @@ def main():
 
         # Run attack iteration
         torch.cuda.empty_cache()
+
+       
         w_batch_optimized = optimization.optimize(
-            w_batch, targets_batch, num_epochs).detach().cpu()
+            w_batch, targets_batch, num_epochs,nr_of_target_models).detach().cpu()
 
         if rtpt:
             num_batches = math.ceil(w.shape[0] / batch_size)
@@ -184,7 +209,7 @@ def main():
             synthesis,
             config,
             targets,
-            target_model,
+            target_models,
             device=device,
             batch_size=batch_size*10,
             **config.final_selection,
@@ -431,9 +456,9 @@ def parse_arguments(parser):
     return config, args
 
 
-def create_initial_vectors(config, G, target_model, targets, device):
+def create_initial_vectors(config, G, target_models, targets, device):
     with torch.no_grad():
-        w = config.create_candidates(G, target_model, targets).cpu()
+        w = config.create_candidates(G, target_models, targets).cpu()
         if config.attack['single_w']:
             w = w[:, 0].unsqueeze(1)
         w_init = deepcopy(w)
