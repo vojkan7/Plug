@@ -27,16 +27,16 @@ class Optimization():
 
         
     def get_selcted_target_models(self,nr_of_target_models):
-
-        # new_target_models=[]
-        # targ=deepcopy(self.target)
-        # nr_of_models=nr_of_target_models
         
-        # while(nr_of_models)>0:
-        #     mod=random.choice(targ)
-        #     new_target_models.append(mod)
-        #     nr_of_models=nr_of_models-1
-        #     targ.remove(mod)
+        new_target_models=[]
+        targ=deepcopy(self.target)
+        nr_of_models=nr_of_target_models
+        
+        while(nr_of_models)>0:
+            mod=random.choice(targ)
+            new_target_models.append(mod)
+            nr_of_models=nr_of_models-1
+            targ.remove(mod)
 
 
        
@@ -58,7 +58,7 @@ class Optimization():
             indices.append(i)
         
         
-        print("hada")
+       
             
        
         
@@ -67,6 +67,8 @@ class Optimization():
         for i in range(num_epochs):
 
             indices_mini = random.sample(indices, nr_target_models)
+            print("HAHAHA")
+            print(indices_mini)
 
             #target_models=Optimization.get_selcted_target_models(self,nr_models)
            
@@ -91,12 +93,18 @@ class Optimization():
             # Compute target loss & combine losses and compute gradients
             loss_sum = torch.tensor(0.0)
             loss_sum=loss_sum.cuda()
-            for i in indices_mini:
-                outputs = self.target[i](imgs)
+            # for target in target_models:
+            #     outputs = target(imgs)
+            #     target_loss = poincare_loss(
+            #         outputs, targets_batch).mean()
+            #     loss_sum+=target_loss
+            # loss=loss_sum/len(target_models)
+            for indx in indices_mini:
+                outputs = self.target[indx](imgs)
                 target_loss = poincare_loss(
                     outputs, targets_batch).mean()
                 loss_sum+=target_loss
-            loss=loss_sum/len(indices_mini)
+                loss=loss_sum/len(indices_mini)
             loss.backward()
             optimizer.step()
 
