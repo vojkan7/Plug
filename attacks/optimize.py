@@ -19,18 +19,24 @@ class Optimization():
         self.clip = config.attack['clip']
         self.nr_of_target_models = config.attack['nr_of_target_models']
         self.ror=True
+        self.list_wandb_len = len(self.config.wandb_target_run)
+
+        
+
+
+
         
     def get_selcted_target_models(self,nr_of_target_models):
 
-        new_target_models=[]
-        targ=deepcopy(self.target)
-        nr_of_models=nr_of_target_models
+        # new_target_models=[]
+        # targ=deepcopy(self.target)
+        # nr_of_models=nr_of_target_models
         
-        while(nr_of_models)>0:
-            mod=random.choice(targ)
-            new_target_models.append(mod)
-            nr_of_models=nr_of_models-1
-            targ.remove(mod)
+        # while(nr_of_models)>0:
+        #     mod=random.choice(targ)
+        #     new_target_models.append(mod)
+        #     nr_of_models=nr_of_models-1
+        #     targ.remove(mod)
 
 
        
@@ -46,6 +52,13 @@ class Optimization():
         #alte falsche target_models=new_target_models
 
         nr_models=nr_target_models
+
+        indices=[]
+        for i in range(self.list_wandb_len):
+            indices.append(i)
+        
+        
+        print("hada")
             
        
         
@@ -53,8 +66,11 @@ class Optimization():
         # Start optimization
         for i in range(num_epochs):
 
+            indices_mini = random.sample(indices, nr_target_models)
 
-            target_models=Optimization.get_selcted_target_models(self,nr_models)
+            #target_models=Optimization.get_selcted_target_models(self,nr_models)
+           
+
             # synthesize imagesnd preprocess images
             imgs = self.synthesize(w_batch, num_ws=self.num_ws)
 
@@ -75,12 +91,12 @@ class Optimization():
             # Compute target loss & combine losses and compute gradients
             loss_sum = torch.tensor(0.0)
             loss_sum=loss_sum.cuda()
-            for target in target_models:
-                outputs = target(imgs)
+            for i in indices_mini:
+                outputs = self.target[i](imgs)
                 target_loss = poincare_loss(
                     outputs, targets_batch).mean()
                 loss_sum+=target_loss
-            loss=loss_sum/len(target_models)
+            loss=loss_sum/len(indices_mini)
             loss.backward()
             optimizer.step()
 
