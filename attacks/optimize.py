@@ -103,7 +103,7 @@ class Optimization():
                 outputs = self.target[indx](imgs)
                 target_loss = poincare_loss(
                     outputs, targets_batch).mean()
-                loss = target_loss + discriminator_loss * self.discriminator_weight
+                loss_sum += target_loss + discriminator_loss * self.discriminator_weight
             loss=loss_sum/len(indices_mini)
             loss.backward()
             optimizer.step()
