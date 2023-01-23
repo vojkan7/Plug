@@ -40,7 +40,7 @@ class Optimization():
         for i in range(num_epochs):
 
             indices_mini = random.sample(indices, nr_target_models)
-            print("HAHAHA")
+            
             print(indices_mini)           
 
             # synthesize imagesnd preprocess images
@@ -86,10 +86,8 @@ class Optimization():
                     else:
                         outputs+=outputs
                 outputs=outputs/nr_target_models
-                print("JAJA")
                 print(nr_target_models)
                 print(len(indices_mini))
-                print("JAJA2")
                 outputs_list.append(outputs)
                 target_loss = poincare_loss(
                         outputs, targets_batch).mean()
@@ -114,10 +112,10 @@ class Optimization():
                             confidence_vector = outputs.softmax(dim=1)
                         else:
                             confidence_vector += outputs.softmax(dim=1)
-                        if len(outputs_list)>1:
-                            confidence_vector = confidence_vector/nr_target_models
-                            print("LALA")
-                            print(nr_target_models)
+                    if len(outputs_list)>1:
+                        confidence_vector = confidence_vector/nr_target_models
+                            
+                            
                     confidences = torch.gather(
                         confidence_vector, 1, targets_batch.unsqueeze(1))
                     mean_conf = confidences.mean().detach().cpu()
