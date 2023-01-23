@@ -16,7 +16,6 @@ def scores_by_transform(imgs,
     nr_of_target_models=len(target_models)
 
     
-    #print(nr_of_target_models)
     with torch.no_grad():
         for i in range(iterations):
             imgs_transformed = transforms(imgs)

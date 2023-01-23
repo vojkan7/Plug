@@ -99,14 +99,14 @@ def main():
         config, G, target_models, targets, device)
     del G
 
-    # Initialize wandb logging       #################################################################Hier wird target_model_name= Classifier benutz. anpassen ?
+    # Initialize wandb logging   
     if config.logging:
         optimizer = config.create_optimizer(params=[w])
         wandb_run = init_wandb_logging(
             optimizer, target_model_name, config, args)
         run_id = wandb_run.id
 
-    # Print attack configuration ##################################hier auch text
+    # Print attack configuration 
     print(
         f'Start attack against {target_model.name} optimizing w with shape {list(w.shape)} ',
         f'and targets {dict(Counter(targets.cpu().numpy()))}.'
@@ -154,7 +154,7 @@ def main():
 
      #choice number of target models
     nr_of_target_models = config.attack['nr_of_target_models']
-    #target_models=optimization.get_selcted_target_models(nr_of_target_models)
+    
 
 
 
@@ -221,7 +221,7 @@ def main():
         )
     else:
         final_targets, final_w = targets, w_optimized_unselected
-    del target_model
+    del target_models
 
     # Log selected vectors
     if config.logging:

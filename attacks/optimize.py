@@ -20,47 +20,20 @@ class Optimization():
         self.nr_of_target_models = config.attack['nr_of_target_models']
         self.ror=True
         self.list_wandb_len = len(self.config.wandb_target_run)
+        self.optim_set=config.attack['optim_set']
 
-        
-
-
-
-        
-    def get_selcted_target_models(self,nr_of_target_models):
-        
-        new_target_models=[]
-        targ=deepcopy(self.target)
-        nr_of_models=nr_of_target_models
-        
-        while(nr_of_models)>0:
-            mod=random.choice(targ)
-            new_target_models.append(mod)
-            nr_of_models=nr_of_models-1
-            targ.remove(mod)
-
-
-       
-        
-        return new_target_models
 
 
     def optimize(self, w_batch, targets_batch, num_epochs,nr_target_models):
         # Initialize attack
         optimizer = self.config.create_optimizer(params=[w_batch.requires_grad_()])
         scheduler = self.config.create_lr_scheduler(optimizer)
-        ######################################################################jedes mal nimmt
-        #alte falsche target_models=new_target_models
+        
 
-        nr_models=nr_target_models
 
         indices=[]
         for i in range(self.list_wandb_len):
             indices.append(i)
-        
-        
-       
-            
-       
         
 
         # Start optimization
@@ -68,10 +41,7 @@ class Optimization():
 
             indices_mini = random.sample(indices, nr_target_models)
             print("HAHAHA")
-            print(indices_mini)
-
-            #target_models=Optimization.get_selcted_target_models(self,nr_models)
-           
+            print(indices_mini)           
 
             # synthesize imagesnd preprocess images
             imgs = self.synthesize(w_batch, num_ws=self.num_ws)
@@ -88,23 +58,44 @@ class Optimization():
                 imgs = self.clip_images(imgs)
             if self.transformations:
                 imgs = self.transformations(imgs)
-                    
 
-            # Compute target loss & combine losses and compute gradients
             loss_sum = torch.tensor(0.0)
             loss_sum=loss_sum.cuda()
-            # for target in target_models:
-            #     outputs = target(imgs)
-            #     target_loss = poincare_loss(
-            #         outputs, targets_batch).mean()
-            #     loss_sum+=target_loss
-            # loss=loss_sum/len(target_models)
-            for indx in indices_mini:
-                outputs = self.target[indx](imgs)
+            outputs_list=[]
+
+
+            # Compute target loss & combine losses and compute gradients       
+            if self.optim_set==0:
+                for indx in indices_mini:
+                    print("indx is")
+                    print(indx)
+                    outputs = self.target[indx](imgs)
+                    outputs_list.append(outputs)
+                    target_loss = poincare_loss(
+                        outputs, targets_batch).mean()
+                    loss_sum += target_loss + discriminator_loss * self.discriminator_weight
+                optimizer.zero_grad()
+                loss=loss_sum/nr_target_models
+                
+            else: 
+                for indx in indices_mini:
+                    print("indx is")
+                    print(indx)
+                    if indx == indices_mini[0]:
+                        outputs = self.target[indx](imgs)
+                    else:
+                        outputs+=outputs
+                outputs=outputs/nr_target_models
+                print("JAJA")
+                print(nr_target_models)
+                print(len(indices_mini))
+                print("JAJA2")
+                outputs_list.append(outputs)
                 target_loss = poincare_loss(
-                    outputs, targets_batch).mean()
-                loss_sum += target_loss + discriminator_loss * self.discriminator_weight
-            loss=loss_sum/len(indices_mini)
+                        outputs, targets_batch).mean()
+                optimizer.zero_grad()
+                loss=target_loss + discriminator_loss * self.discriminator_weight
+                
             loss.backward()
             optimizer.step()
 
@@ -112,10 +103,21 @@ class Optimization():
             if scheduler:
                 scheduler.step()
 
+        
+
             # Log results
             if self.config.log_progress:
                 with torch.no_grad():
-                    confidence_vector = outputs.softmax(dim=1)
+                    #confidence_vector = outputs.softmax(dim=1)
+                    for index, outputs in enumerate(outputs_list):
+                        if index==0:
+                            confidence_vector = outputs.softmax(dim=1)
+                        else:
+                            confidence_vector += outputs.softmax(dim=1)
+                        if len(outputs_list)>1:
+                            confidence_vector = confidence_vector/nr_target_models
+                            print("LALA")
+                            print(nr_target_models)
                     confidences = torch.gather(
                         confidence_vector, 1, targets_batch.unsqueeze(1))
                     mean_conf = confidences.mean().detach().cpu()
