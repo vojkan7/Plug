@@ -16,14 +16,20 @@ def scores_by_transform(imgs,
     nr_of_target_models=len(target_models)
 
     
+    len_target_models = len(target_models)
+
     with torch.no_grad():
         for i in range(iterations):
             imgs_transformed = transforms(imgs)
+            prediction_vector = None
             for target_model in target_models:
-                prediction_vector = target_model(imgs_transformed).softmax(dim=1)
-                score += torch.gather(prediction_vector, 1, targets.unsqueeze(1)).squeeze()
+                if prediction_vector is None:
+                    prediction_vector = target_model(imgs_transformed).softmax(dim=1)
+                else:
+                    prediction_vector += target_model(imgs_transformed).softmax(dim=1)
+            prediction_vector = prediction_vector / len_target_models
+            score += torch.gather(prediction_vector, 1, targets.unsqueeze(1)).squeeze()
                 
-            score=score/nr_of_target_models
         score = score / iterations
     return score
 
