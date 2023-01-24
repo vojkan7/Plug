@@ -84,10 +84,10 @@ class Optimization():
                     if indx == indices_mini[0]:
                         outputs = self.target[indx](imgs)
                     else:
-                        outputs+=outputs
+                        out=self.target[indx](imgs)
+                        outputs+=out
                 outputs=outputs/nr_target_models
-                print(nr_target_models)
-                print(len(indices_mini))
+                
                 outputs_list.append(outputs)
                 target_loss = poincare_loss(
                         outputs, targets_batch).mean()
