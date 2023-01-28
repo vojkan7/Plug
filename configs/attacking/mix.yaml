@@ -49,7 +49,7 @@ attack:
       scale: [0.9, 1.0]
       ratio: [1.0, 1.0]
   nr_of_target_models: 1
-  optim_set: 0
+  optim_set: 1
 
   optimizer: # Optimizer used for optimization. All optimizers from torch.optim are possible.
     Adam:
@@ -76,4 +76,4 @@ wandb: # Options for WandB logging.
   wandb_init_args: # WandB init arguments.
     project: model_inversion_attacks
     save_code: true
-    name: N_Mix(1of3v)attack 24.01_all_Pics
+    name: Out_Mix(1of3v)attack 28.01_all_Pics
