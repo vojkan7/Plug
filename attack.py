@@ -6,6 +6,8 @@ from collections import Counter
 import csv
 from pathlib import Path
 import math
+import sys
+
 
 import numpy as np
 import torch
@@ -152,11 +154,21 @@ def main():
         target_models, synthesis, discriminator, attack_transformations, num_ws, config)
 
 
-     #choice number of target models
-    nr_of_target_models = config.attack['nr_of_target_models']
-    
+    #load target models parameter
+    nr_of_target_models = config.attack['nr_of_target_models'] #nr of model that we use
+    nr_of_wanb_target_models=len(config.wandb_target_run) #nr of target models in list
+    control=0
+    if nr_of_target_models>nr_of_wanb_target_models or nr_of_target_models<1:
+        sys.exit('The number of selected models is greater than the number of models in the list or lower than 1')
+    elif nr_of_target_models==nr_of_wanb_target_models:
+        control=1
+    else:
+        control=2
 
-
+    indices=[]
+    for i in range(nr_of_wanb_target_models):
+        indices.append(i)
+     
 
     # Collect results
     w_optimized = []
@@ -174,7 +186,7 @@ def main():
 
        
         w_batch_optimized = optimization.optimize(
-            w_batch, targets_batch, num_epochs,nr_of_target_models).detach().cpu()
+            w_batch, targets_batch, num_epochs,nr_of_target_models,control,indices).detach().cpu()
 
         if rtpt:
             num_batches = math.ceil(w.shape[0] / batch_size)
@@ -222,6 +234,8 @@ def main():
     else:
         final_targets, final_w = targets, w_optimized_unselected
     del target_models
+    del target_model
+
 
     # Log selected vectors
     if config.logging:

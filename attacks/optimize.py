@@ -23,23 +23,20 @@ class Optimization():
         self.optim_set=config.attack['optim_set']
 
 
-
-    def optimize(self, w_batch, targets_batch, num_epochs,nr_target_models):
+    def optimize(self, w_batch, targets_batch, num_epochs,nr_target_models,control,indices):
         # Initialize attack
         optimizer = self.config.create_optimizer(params=[w_batch.requires_grad_()])
         scheduler = self.config.create_lr_scheduler(optimizer)
-        
 
-
-        indices=[]
-        for i in range(self.list_wandb_len):
-            indices.append(i)
-        
-
+        indices=indices
+  
         # Start optimization
         for i in range(num_epochs):
 
-            indices_mini = random.sample(indices, nr_target_models)
+            if control==2:
+                indices_mini = random.sample(indices, nr_target_models)
+            else:
+                indices_mini=indices
             
             print(indices_mini)           
 
