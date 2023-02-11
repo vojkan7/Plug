@@ -392,8 +392,11 @@ def main():
         num_classes = 10
         num_imgs = 8
         # Sample final images from the first and last classes
-        label_subset = set(list(set(targets.tolist()))[
-            :int(num_classes/2)] + list(set(targets.tolist()))[-int(num_classes/2):])
+        #label_subset = set(list(set(targets.tolist()))[
+        #    :int(num_classes/2)] + list(set(targets.tolist()))[-int(num_classes/2):])
+        #Sample final images from the first classes male and from the first classes female
+        label_subset = set(list(set(targets.tolist()))[:int(num_classes/2)] + list(set(targets.tolist()))[int(len(set(targets.tolist()))/2) : int ( (len(set(targets.tolist()))/2) + num_classes/2)])
+        print(label_subset)
         log_imgs = []
         log_targets = []
         log_predictions = []
