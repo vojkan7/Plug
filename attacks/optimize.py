@@ -35,6 +35,7 @@ class Optimization():
 
             if control==2:
                 indices_mini = random.sample(indices, nr_target_models)
+                
             else:
                 indices_mini=indices
             
@@ -64,8 +65,7 @@ class Optimization():
             # Compute target loss & combine losses and compute gradients       
             if self.optim_set==0:
                 for indx in indices_mini:
-                    print("indx is")
-                    print(indx)
+                    
                     outputs = self.target[indx](imgs)
                     outputs_list.append(outputs)
                     target_loss = poincare_loss(
@@ -76,8 +76,7 @@ class Optimization():
                 
             else: 
                 for indx in indices_mini:
-                    print("indx is")
-                    print(indx)
+                    
                     if indx == indices_mini[0]:
                         outputs = self.target[indx](imgs)
                     else:

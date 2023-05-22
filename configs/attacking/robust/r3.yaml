@@ -76,4 +76,4 @@ wandb: # Options for WandB logging.
   wandb_init_args: # WandB init arguments.
     project: model_inversion_attacks
     save_code: true
-    name: Robust_ResNet18(3of5v)attack 10.02_all_Pics
+    name: Robust_ResNet18(3of5v)

@@ -158,6 +158,8 @@ def main():
     nr_of_target_models = config.attack['nr_of_target_models'] #nr of model that we use
     nr_of_wanb_target_models=len(config.wandb_target_run) #nr of target models in list
     control=0
+    print(nr_of_target_models)
+    print(nr_of_wanb_target_models)
     if nr_of_target_models>nr_of_wanb_target_models or nr_of_target_models<1:
         sys.exit('The number of selected models is greater than the number of models in the list or lower than 1')
     elif nr_of_target_models==nr_of_wanb_target_models:
